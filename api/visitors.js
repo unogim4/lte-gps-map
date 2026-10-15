@@ -20,13 +20,13 @@ export function validateShare(body){
 }
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('Vary','Authorization');
- if(!['GET','POST','DELETE'].includes(req.method)){res.setHeader('Allow','GET, POST, DELETE');return res.status(405).json({error:'지원하지 않는 요청입니다.'});}
+ if(!['GET','POST','PUT','DELETE'].includes(req.method)){res.setHeader('Allow','GET, POST, PUT, DELETE');return res.status(405).json({error:'지원하지 않는 요청입니다.'});}
  const adminKey=process.env.ADMIN_ACCESS_KEY;
  if(!adminKey)return res.status(503).json({error:'관리자 위치 공유 기능을 준비 중입니다.'});
  if(req.method==='GET'&&!equal(req.headers.authorization,`Bearer ${adminKey}`))return res.status(401).json({error:'관리자 인증키를 확인하세요.'});
  let point;
- if(req.method==='POST'){try{point=validateShare(req.body)}catch(e){return res.status(400).json({error:e.message})}}
- if(req.method==='DELETE'&&(!/^[a-f0-9-]{36}$/.test(req.body?.id||'')||typeof req.body?.deleteToken!=='string'))return res.status(400).json({error:'공유 취소 정보가 올바르지 않습니다.'});
+ if(['POST','PUT'].includes(req.method)){try{point=validateShare(req.body)}catch(e){return res.status(400).json({error:e.message})}}
+ if(['DELETE','PUT'].includes(req.method)&&(!/^[a-f0-9-]{36}$/.test(req.body?.id||'')||typeof req.body?.deleteToken!=='string'))return res.status(400).json({error:'공유 취소 정보가 올바르지 않습니다.'});
  try{
   const now=Date.now();
   if(req.method==='GET'){
@@ -44,13 +44,20 @@ export default async function handler(req,res){
    await redis([['DEL',key],['ZREM',INDEX,req.body.id]],true);
    return res.status(200).json({ok:true});
   }
+  let existing=null;
+  if(req.method==='PUT'){
+   const raw=await redis(['GET','visitor-sharing:record:'+req.body.id]);
+   if(!raw)return res.status(404).json({error:'공유 세션이 만료되었습니다. 공유를 다시 시작하세요.'});
+   existing=JSON.parse(raw);
+   if(!equal(existing.deleteHash,digest(req.body.deleteToken).toString('hex')))return res.status(401).json({error:'공유 세션 인증이 일치하지 않습니다.'});
+  }
   const ip=String(req.headers['x-real-ip']||req.headers['x-forwarded-for']||'unknown').split(',')[0].trim();
-  const rateKey='visitor-sharing:rate:'+digest(adminKey+':'+ip).toString('hex');
-  const [count]=await redis([['INCR',rateKey],['EXPIRE',rateKey,60]],true);
-  if(count>10){res.setHeader('Retry-After','60');return res.status(429).json({error:'요청이 너무 많습니다. 1분 뒤 다시 시도하세요.'});}
-  const id=randomUUID(),deleteToken=randomBytes(32).toString('hex');
-  const record={id,...point,receivedAt:new Date(now).toISOString(),expiresAt:new Date(now+RETENTION*1000).toISOString(),consentVersion:'location-sharing-v1',deleteHash:digest(deleteToken).toString('hex')};
+  const rateKey='visitor-sharing:rate:'+digest(adminKey+':'+(existing?existing.id:ip)).toString('hex');
+  const [count]=await redis([['INCR',rateKey],['EXPIRE',rateKey,60,'NX']],true);
+  if(count>(existing?30:10)){res.setHeader('Retry-After','60');return res.status(429).json({error:'요청이 너무 많습니다. 1분 뒤 다시 시도하세요.'});}
+  const id=existing?.id||randomUUID(),deleteToken=existing?req.body.deleteToken:randomBytes(32).toString('hex');
+  const record={id,...point,receivedAt:new Date(now).toISOString(),expiresAt:new Date(now+RETENTION*1000).toISOString(),consentVersion:req.body.mode==='live'?'location-sharing-live-v1':'location-sharing-v1',deleteHash:digest(deleteToken).toString('hex')};
   await redis([['SET','visitor-sharing:record:'+id,JSON.stringify(record),'EX',RETENTION],['ZADD',INDEX,now,id],['ZREMRANGEBYSCORE',INDEX,'-inf',now-RETENTION*1000],['ZREMRANGEBYRANK',INDEX,0,-201],['EXPIRE',INDEX,RETENTION]],true);
-  return res.status(201).json({ok:true,id,deleteToken,expiresAt:record.expiresAt});
+  return res.status(existing?200:201).json({ok:true,id,deleteToken,expiresAt:record.expiresAt});
  }catch{return res.status(502).json({error:'위치 저장소에 연결하지 못했습니다. 잠시 후 다시 시도하세요.'})}
 }
