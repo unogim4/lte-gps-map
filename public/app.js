@@ -12,3 +12,5 @@ $('live').onclick=()=>{if(live){stop();status('자동 수신을 중지했습니�
 $('device').oninput=()=>{if(live){stop();status('장치 ID가 변경되었습니다. 수신을 다시 시작하세요.');}};
 const params=new URLSearchParams(location.search);if(params.has('device'))$('device').value=params.get('device');if(params.has('lat')||params.has('lng')){try{show(params.get('lat'),params.get('lng'),'URL 좌표');}catch(e){status(e.message);}}
 $('sample').textContent=location.origin+'/?lat=37.5665&lng=126.9780';
+
+if(params.has('device') && !params.has('lat') && !params.has('lng')) $('live').click();

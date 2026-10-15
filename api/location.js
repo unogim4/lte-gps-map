@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   try { if (writing) point = parsePoint(input); } catch(e) {return res.status(400).json({error:e.message});}
   const device = input.device || 'gps-01';
   if (typeof device !== 'string' || !/^[a-zA-Z0-9_-]{1,40}$/.test(device)) return res.status(400).json({error:'잘못된 장치 ID입니다.'});
-  const url=process.env.UPSTASH_REDIS_REST_URL, token=process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url=process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL, token=process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) return res.status(503).json({error:'실시간 수신용 저장소가 아직 연결되지 않았습니다. URL 좌표 표시 기능은 사용할 수 있습니다.',code:'STORAGE_NOT_CONFIGURED'});
   if (writing && !process.env.GPS_WRITE_KEY) return res.status(503).json({error:'서버 GPS_WRITE_KEY를 설정하세요.'});
   if (writing && (req.headers['x-gps-key'] || input.key) !== process.env.GPS_WRITE_KEY) return res.status(401).json({error:'전송 키가 일치하지 않습니다.'});
