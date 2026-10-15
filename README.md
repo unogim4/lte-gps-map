@@ -4,10 +4,11 @@
 
 ## 현재 상태
 
+- 기본 주소 접속 시 브라우저 위치 권한 요청 후 내 위치 표시
 - URL 좌표 표시, 직접 입력, 공유 URL 복사 구현 완료
 - API: 장치별 최신 좌표 저장/조회, 전송 키 확인, 좌표 검증 구현 완료
 - Upstash Redis Free 연결 완료: Production 전용 lte-gps-map-redis
-- 단위 테스트 4개 통과. 공개 사이트 URL 좌표 표시 확인. LTE 장비 시험은 미실시
+- 단위 테스트 8개 통과. 공개 사이트 URL 좌표 표시 확인. LTE 장비 시험은 미실시
 - Vercel 프로젝트 생성됨: lte-gps-map / prj_14AsJ9mK7zqhlkJuXASD35PyYpKb
 - 팀: team_QtCilW4X3sD6vn4oMeyEE8c3 (unogims-projects)
 - 공개 사이트: https://lte-gps-map.vercel.app
@@ -74,3 +75,7 @@ npm test
 ```
 
 공식 참고: https://vercel.com/docs/functions/runtimes/node-js 및 https://upstash.com/docs/redis/features/restapi
+
+## 내 현재 위치
+
+https://lte-gps-map.vercel.app 에 접속하고 위치 요청을 허용하면 내 위치가 표시됩니다. 전송키는 필요하지 않습니다. 위치 권한이 차단되면 주소창의 사이트 설정에서 위치를 허용하고 내 위치 찾기를 누르세요. 데스크톱은 Wi-Fi/네트워크 기반 추정 위치로 오차가 클 수 있습니다. 이 기능은 좌표를 Redis에 자동 전송하지 않습니다. device 링크는 해당 장치의 서버 수신 위치를 표시합니다.
