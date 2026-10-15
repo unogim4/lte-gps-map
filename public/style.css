@@ -6,3 +6,5 @@
 .map-status{position:absolute;z-index:500;top:86px;left:22px;right:22px;background:#fff5da;color:#70561a;padding:12px 15px;border-radius:8px;font-size:12px;line-height:1.5;pointer-events:none}
 .map-status[hidden]{display:none}
 @media(max-width:760px){.map-wrap{height:52vh;height:52svh;min-height:320px;flex:0 0 auto}#map{inset:0}.map-top{top:16px;left:16px;right:16px}.map-note{left:16px;bottom:28px;max-width:calc(100% - 32px)}}
+
+button:disabled{opacity:.5;cursor:not-allowed}.consent{display:flex;gap:9px;align-items:flex-start;line-height:1.6;margin:4px 0 15px}.consent input{width:17px;height:17px;margin:1px 0;flex-shrink:0}.visitor-share{margin-top:12px}.visitor-share .primary{justify-content:center}[hidden]{display:none!important}

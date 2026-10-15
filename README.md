@@ -8,7 +8,7 @@
 - URL 좌표 표시, 직접 입력, 공유 URL 복사 구현 완료
 - API: 장치별 최신 좌표 저장/조회, 전송 키 확인, 좌표 검증 구현 완료
 - Upstash Redis Free 연결 완료: Production 전용 lte-gps-map-redis
-- 단위 테스트 8개 통과. 공개 사이트 URL 좌표 표시 확인. LTE 장비 시험은 미실시
+- 단위 테스트 14개 통과. 공개 사이트 URL 좌표 표시 확인. LTE 장비 시험은 미실시
 - Vercel 프로젝트 생성됨: lte-gps-map / prj_14AsJ9mK7zqhlkJuXASD35PyYpKb
 - 팀: team_QtCilW4X3sD6vn4oMeyEE8c3 (unogims-projects)
 - 공개 사이트: https://lte-gps-map.vercel.app
@@ -79,3 +79,14 @@ npm test
 ## 내 현재 위치
 
 https://lte-gps-map.vercel.app 에 접속하고 위치 요청을 허용하면 내 위치가 표시됩니다. 전송키는 필요하지 않습니다. 위치 권한이 차단되면 주소창의 사이트 설정에서 위치를 허용하고 내 위치 찾기를 누르세요. 데스크톱은 Wi-Fi/네트워크 기반 추정 위치로 오차가 클 수 있습니다. 이 기능은 좌표를 Redis에 자동 전송하지 않습니다. device 링크는 해당 장치의 서버 수신 위치를 표시합니다.
+
+## 동의한 방문자 위치 공유
+
+- 기본 페이지의 ‘관리자에게 위치 공유’에서 목적·보관기간을 확인하고 체크한 후 버튼을 눌러야 전송합니다.
+- 위치 권한 허용만으로 서버에 공유하지 않습니다. 정확한 위치·정확도·시각·선택 별명을 1회 저장합니다.
+- 최대 24시간 보관하며 관리자 화면은 최근 200건을 표시합니다. 방문자는 같은 페이지를 닫기 전 삭제 버튼으로 공유를 취소할 수 있습니다.
+- 관리자 화면: https://lte-gps-map.vercel.app/admin.html
+- 서버 환경변수 ADMIN_ACCESS_KEY(Production Secret)가 필요합니다. GPS_WRITE_KEY와 분리되어 있습니다.
+- 관리자 인증키는 URL·브라우저 저장소에 넣지 않고 페이지 메모리에서만 사용합니다. GET /api/visitors에는 Authorization: Bearer 인증이 필요합니다.
+- 방문자 레코드는 visitor-sharing:record 네임스페이스로 저장되며 Redis TTL 86400초를 적용합니다. 공개 장치 조회 API에서는 방문자 위치를 읽을 수 없습니다.
+- 위치 데이터 자체는 실제 신원이나 실제 좌표임을 검증하지 않으므로 본인확인 수단으로 사용하지 마세요.
