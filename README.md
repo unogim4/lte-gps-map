@@ -66,7 +66,7 @@ curl -X POST 'https://YOUR-DOMAIN/api/location' \
 
 LTE는 장치의 인터넷 연결 방식입니다. GPS 원시 NMEA나 이동통신 모뎀의 AT 명령을 이 사이트가 직접 해석하지 않습니다. 장치 펌웨어에서 좌표를 변환하고 HTTPS GET/POST 요청을 만들어야 합니다. 장치·모뎀의 TLS 인증서 검증 및 HTTPS 지원을 확인하세요.
 
-지도는 Leaflet 1.9.4와 OpenStreetMap 타일을 사용하므로 브라우저에서 외부 CDN/지도 서버에 연결되어야 합니다.
+지도는 Leaflet 1.9.4와 OpenStreetMap 타일을 사용하므로 Leaflet 라이브러리는 사이트에 포함되어 있고, 지도 이미지는 OpenStreetMap 서버에서 받습니다. 모바일 지도는 명시적 높이와 크기 재계산으로 표시합니다.
 
 ## 검증
 

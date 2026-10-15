@@ -1,8 +1,21 @@
 const $=id=>document.getElementById(id);
 let map,marker,point,timer,live=false,busy=false,geoRequest=0;
 function status(message){$('status').textContent=message;}
-if(window.L){map=L.map('map').setView([37.5665,126.978],12);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map).on('tileerror',()=>status('지도 타일을 불러오지 못했습니다. 인터넷 연결을 확인하세요.'));}else{status('지도 라이브러리를 불러오지 못했습니다. 연결을 확인 후 새로고침하세요.');}
-function show(lat,lng,mode,time){if(lat===null||lng===null||String(lat).trim()===''||String(lng).trim()==='')throw Error('위도와 경도를 모두 입력하세요.');lat=Number(lat);lng=Number(lng);if(!Number.isFinite(lat)||lat < -90||lat>90||!Number.isFinite(lng)||lng < -180||lng>180)throw Error('위도 -90~90, 경도 -180~180 범위로 입력하세요.');point={lat,lng};$('latitude').textContent=lat.toFixed(6);$('longitude').textContent=lng.toFixed(6);$('lat').value=lat;$('lng').value=lng;$('mode').textContent=mode;$('updated').textContent=time?new Date(time).toLocaleString('ko-KR'):'URL / 직접 입력';$('map-note').textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)} · ${mode}`;if(map){if(marker)marker.setLatLng([lat,lng]);else marker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="gps-pin"></div>',iconSize:[24,24],iconAnchor:[12,12]})}).addTo(map);map.setView([lat,lng],15);}status(mode==='장치 수신'?'GPS 장치 위치를 수신했습니다.':'좌표 위치를 표시했습니다. 링크를 복사해 공유하세요.');}
+function mapMessage(message){$('map-status').textContent=message;$('map-status').hidden=!message;}
+if(window.L){
+ map=L.map('map').setView([37.5665,126.978],12);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,referrerPolicy:'strict-origin-when-cross-origin',attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'})
+  .on('tileerror',()=>mapMessage('지도 이미지를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.'))
+  .on('tileload',()=>mapMessage(''))
+  .addTo(map);
+ const resizeMap=()=>map.invalidateSize({pan:false});
+ if(window.ResizeObserver)new window.ResizeObserver(resizeMap).observe($('map'));
+ window.addEventListener('resize',resizeMap);
+ window.addEventListener('pageshow',resizeMap);
+ resizeMap();
+}else{mapMessage('지도 프로그램을 불러오지 못했습니다. 새로고침해 주세요.');}
+
+function show(lat,lng,mode,time){if(lat===null||lng===null||String(lat).trim()===''||String(lng).trim()==='')throw Error('위도와 경도를 모두 입력하세요.');lat=Number(lat);lng=Number(lng);if(!Number.isFinite(lat)||lat < -90||lat>90||!Number.isFinite(lng)||lng < -180||lng>180)throw Error('위도 -90~90, 경도 -180~180 범위로 입력하세요.');point={lat,lng};$('latitude').textContent=lat.toFixed(6);$('longitude').textContent=lng.toFixed(6);$('lat').value=lat;$('lng').value=lng;$('mode').textContent=mode;$('updated').textContent=time?new Date(time).toLocaleString('ko-KR'):'URL / 직접 입력';$('map-note').textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)} · ${mode}`;if(map){map.invalidateSize({pan:false});if(marker)marker.setLatLng([lat,lng]);else marker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="gps-pin"></div>',iconSize:[24,24],iconAnchor:[12,12]})}).addTo(map);map.setView([lat,lng],15);}status(mode==='장치 수신'?'GPS 장치 위치를 수신했습니다.':'좌표 위치를 표시했습니다. 링크를 복사해 공유하세요.');}
 function stop(){geoRequest++;clearTimeout(timer);live=false;$('live').textContent='장치 위치 수신 시작';}
 $('point-form').addEventListener('submit',e=>{e.preventDefault();stop();try{show($('lat').value,$('lng').value,'직접 입력');const u=new URL(location.href);u.search='';u.searchParams.set('lat',point.lat);u.searchParams.set('lng',point.lng);history.replaceState(null,'',u);}catch(e){status(e.message);}});
 $('share').onclick=async()=>{if(!point)return status('먼저 위치를 표시하세요.');const u=new URL(location.href);u.search='';u.searchParams.set('lat',point.lat);u.searchParams.set('lng',point.lng);try{await navigator.clipboard.writeText(u.href);status('위치 URL을 복사했습니다.');}catch{status('주소창의 URL을 복사해 주세요.');history.replaceState(null,'',u);}};
