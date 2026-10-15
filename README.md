@@ -8,7 +8,7 @@
 - URL 좌표 표시, 직접 입력, 공유 URL 복사 구현 완료
 - API: 장치별 최신 좌표 저장/조회, 전송 키 확인, 좌표 검증 구현 완료
 - Upstash Redis Free 연결 완료: Production 전용 lte-gps-map-redis
-- 단위 테스트 14개 통과. 공개 사이트 URL 좌표 표시 확인. LTE 장비 시험은 미실시
+- 단위 테스트 18개 통과. 공개 사이트 URL 좌표 표시 확인. LTE 장비 시험은 미실시
 - Vercel 프로젝트 생성됨: lte-gps-map / prj_14AsJ9mK7zqhlkJuXASD35PyYpKb
 - 팀: team_QtCilW4X3sD6vn4oMeyEE8c3 (unogims-projects)
 - 공개 사이트: https://lte-gps-map.vercel.app
@@ -90,3 +90,7 @@ https://lte-gps-map.vercel.app 에 접속하고 위치 요청을 허용하면 �
 - 관리자 인증키는 URL·브라우저 저장소에 넣지 않고 페이지 메모리에서만 사용합니다. GET /api/visitors에는 Authorization: Bearer 인증이 필요합니다.
 - 방문자 레코드는 visitor-sharing:record 네임스페이스로 저장되며 Redis TTL 86400초를 적용합니다. 공개 장치 조회 API에서는 방문자 위치를 읽을 수 없습니다.
 - 위치 데이터 자체는 실제 신원이나 실제 좌표임을 검증하지 않으므로 본인확인 수단으로 사용하지 마세요.
+
+## TM800 고정 수신 경로
+
+`/radlot/data` 및 `/radlot/data/`를 HTTPS 수신 API에 연결했습니다. JSON/폼/쿼리의 십진수 좌표와 기존 GPS 전송키를 사용합니다. 실제 펌웨어 형식은 미확인입니다. 자세한 설정·시험 방법은 [TM800.md](TM800.md)를 참고하세요.

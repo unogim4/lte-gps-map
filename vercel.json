@@ -1,1 +1,29 @@
-{"framework":null,"outputDirectory":"public","headers":[{"source":"/(.*)","headers":[{"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"},{"key":"X-Content-Type-Options","value":"nosniff"}]}]}
+{
+  "framework": null,
+  "outputDirectory": "public",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/radlot/data",
+      "destination": "/api/tm800"
+    },
+    {
+      "source": "/radlot/data/",
+      "destination": "/api/tm800"
+    }
+  ]
+}
