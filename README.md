@@ -7,16 +7,16 @@
 - URL 좌표 표시, 직접 입력, 공유 URL 복사 구현 완료
 - API: 장치별 최신 좌표 저장/조회, 전송 키 확인, 좌표 검증 구현 완료
 - Upstash 미연결: 서버 수신은 503 응답. 가짜 저장 또는 임시 메모리 저장 없음
-- 단위 테스트 3개 통과. 실제 브라우저 지도 렌더링 및 LTE 장비 시험은 미실시
+- 단위 테스트 3개 통과. 공개 사이트 URL 좌표 표시 확인. LTE 장비 시험은 미실시
 - Vercel 프로젝트 생성됨: lte-gps-map / prj_14AsJ9mK7zqhlkJuXASD35PyYpKb
 - 팀: team_QtCilW4X3sD6vn4oMeyEE8c3 (unogims-projects)
-- 공개 배포 및 보호 설정 변경은 연결 계정의 팀 접근 권한 부족(403)으로 실패. 공개 URL 없음
+- 공개 사이트: https://lte-gps-map.vercel.app
+- GitHub 저장소: https://github.com/unogim4/lte-gps-map
+- main 브랜치에 푸시하면 Vercel Production 자동 배포
 
 ## Vercel 배포
 
-이 폴더 전체를 Git 저장소에 업로드하고 Vercel에서 연결하세요. Framework Preset은 Other, Output Directory는 public입니다. api/location.js는 Vercel Function으로 실행합니다.
-
-이미 생성된 프로젝트를 사용할 경우 해당 팀 접근 권한이 있는 계정으로 로그인해야 합니다. 다른 컴퓨터나 LTE 장치에서 인증 없이 접속하려면 Project Settings → Deployment Protection에서 공개할 배포의 Vercel Authentication을 해제하세요.
+Vercel 프로젝트에 unogim4/lte-gps-map 저장소가 연결되어 있습니다. main 브랜치의 새 커밋은 자동으로 빌드·배포되며 https://lte-gps-map.vercel.app 에 반영됩니다. Framework Preset은 Other, Output Directory는 public입니다. api/location.js는 Vercel Function으로 실행합니다.
 
 CLI를 사용하는 경우 이 폴더에서 다음 명령을 실행하고 기존 lte-gps-map 프로젝트를 선택하세요.
 
