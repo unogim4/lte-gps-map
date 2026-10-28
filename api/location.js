@@ -21,10 +21,14 @@ export default async function handler(req, res) {
   if (writing && !process.env.GPS_WRITE_KEY) return res.status(503).json({error:'서버 GPS_WRITE_KEY를 설정하세요.'});
   if (writing && (req.headers['x-gps-key'] || input.key) !== process.env.GPS_WRITE_KEY) return res.status(401).json({error:'전송 키가 일치하지 않습니다.'});
   try {
-    const command = writing ? ['SET',`gps:${device}`,JSON.stringify(point)] : ['GET',`gps:${device}`];
-    const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(command),signal:AbortSignal.timeout(8000)});
+    const command = writing ? [
+      ['SET',`gps:${device}`,JSON.stringify(point)],
+      ['LPUSH',`gps-history:${device}`,JSON.stringify(point)],
+      ['LTRIM',`gps-history:${device}`,0,9999]
+    ] : ['GET',`gps:${device}`];
+    const response=await fetch(writing ? url.replace(/\/$/,'')+'/multi-exec' : url,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(command),signal:AbortSignal.timeout(8000)});
     const data=await response.json();
-    if (!response.ok || data.error) throw Error('Storage failure');
+    if (!response.ok || data.error || (writing && (!Array.isArray(data) || data.some(item=>item.error)))) throw Error('Storage failure');
     if (writing) return res.status(200).json({ok:true,location:point});
     return res.status(200).json({location:data.result ? JSON.parse(data.result) : null});
   } catch {return res.status(502).json({error:'저장소 연결에 실패했습니다. 잠시 후 다시 시도하세요.'});}

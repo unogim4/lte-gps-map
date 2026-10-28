@@ -12,7 +12,7 @@ test('Redis write, cross-client read, and authentication with Vercel KV names',a
  try{
   delete process.env.UPSTASH_REDIS_REST_URL;delete process.env.UPSTASH_REDIS_REST_TOKEN;
   process.env.KV_REST_API_URL='https://redis.example';process.env.KV_REST_API_TOKEN='test-token';process.env.GPS_WRITE_KEY='test-key';
-  globalThis.fetch=async(url,options)=>{assert.equal(url,'https://redis.example');const command=JSON.parse(options.body);if(command[0]==='SET')saved=command[2];return {ok:true,json:async()=>({result:command[0]==='SET'?'OK':saved})}};
+  globalThis.fetch=async(url,options)=>{const command=JSON.parse(options.body);if(url.endsWith('/multi-exec')){saved=command[0][2];assert.equal(command[1][0],'LPUSH');assert.deepEqual(command[2],['LTRIM','gps-history:test',0,9999]);return {ok:true,json:async()=>command.map(()=>({result:'OK'}))};}return {ok:true,json:async()=>({result:saved})}};
   const denied=response();await handler({method:'GET',query:{device:'test',lat:'37',lng:'127',key:'wrong'},headers:{}},denied);assert.equal(denied.code,401);assert.equal(saved,null);
   const writer=response();await handler({method:'POST',body:{device:'test',lat:37,lng:127},headers:{'x-gps-key':'test-key'}},writer);assert.equal(writer.code,200);
   const reader=response();await handler({method:'GET',query:{device:'test'},headers:{}},reader);assert.equal(reader.data.location.lat,37);assert.equal(reader.data.location.lng,127);

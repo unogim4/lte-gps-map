@@ -20,8 +20,16 @@ test('normalized TM800 packets preserve auth and storage, returning stored locat
  const keys=['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','GPS_WRITE_KEY'];const old=Object.fromEntries(keys.map(k=>[k,process.env[k]])),originalFetch=globalThis.fetch;let saved;
  try{
   process.env.UPSTASH_REDIS_REST_URL='https://redis.example';process.env.UPSTASH_REDIS_REST_TOKEN='test';process.env.GPS_WRITE_KEY='test-key';
-  globalThis.fetch=async(url,options)=>{saved=JSON.parse(options.body);return {ok:true,json:async()=>({result:'OK'})}};
+  globalThis.fetch=async(url,options)=>{const commands=JSON.parse(options.body);saved=commands[0];return {ok:true,json:async()=>commands.map(()=>({result:'OK'}))}};
   const rejected=response();await handler({method:'POST',headers:{},body:{lat:35,lng:129,key:'wrong'}},rejected);assert.equal(rejected.code,401);assert.equal(saved,undefined);
   const accepted=response();await handler({method:'POST',headers:{'x-gps-key':'test-key'},body:{latitude:35,longitude:129}},accepted);assert.equal(accepted.code,200);assert.equal(accepted.data.ok,true);assert.equal(saved[1],'gps:tm800-01');assert.equal(JSON.parse(saved[2]).lng,129);
  }finally{globalThis.fetch=originalFetch;for(const k of keys){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k]}}
+});
+
+test('actual text/plain TM800 sample and Buffer parse, key from query',()=>{
+ const packet='l450061222243141|TEST=1|KST=20261028170635|LAT=35.176583|LON=129.125880|MODE=1|ERR=0';
+ for(const body of [packet,Buffer.from(packet)]){
+ const p=normalizeTm800(body,{key:'test-key'},'text/plain');assert.equal(p.device,'l450061222243141');assert.equal(p.lat,'35.176583');assert.equal(p.lng,'129.125880');assert.equal(p.key,'test-key');
+ }
+ for(const body of [packet+'|LAT=1',packet.replace('ERR=0','ERR=1'),packet.replace('35.176583','NaN'),packet.replace('|LON=129.125880','')])assert.throws(()=>normalizeTm800(body,{},'text/plain'));
 });
