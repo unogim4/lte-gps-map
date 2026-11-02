@@ -11,7 +11,7 @@
    try{
     if(!active||run!==generation||!consent.checked||document.hidden)return;
     if(typeof show==='function')show(position.coords.latitude,position.coords.longitude,'내 현재 위치',position.timestamp);
-    const response=await fetch('/api/visitors',{method:receipt?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({consent:true,mode:'live',name:el('visitor-name').value,lat:position.coords.latitude,lng:position.coords.longitude,accuracy:position.coords.accuracy,...(receipt||{})}),signal:AbortSignal.timeout(15000)});
+    const response=await fetch('/api/visitors',{method:receipt?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({consent:true,publicConsent:true,mode:'live',name:el('visitor-name').value,lat:position.coords.latitude,lng:position.coords.longitude,accuracy:position.coords.accuracy,...(receipt||{})}),signal:AbortSignal.timeout(15000)});
     const data=await response.json();
     if(!response.ok){if(response.status===404)receipt=null;if([401,404,429].includes(response.status))stop();throw Error(data.error||'위치를 공유하지 못했습니다.');}
     receipt={id:data.id,deleteToken:data.deleteToken};
