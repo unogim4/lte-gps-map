@@ -1,5 +1,6 @@
 (()=>{
- const el=id=>document.getElementById(id);let busy=false,timer,markers=[];
+ const el=id=>document.getElementById(id);let busy=false,timer,markers=[],initial=true;
+ function fitPublic(){if(map&&markers.length){stop();map.fitBounds(L.featureGroup(markers).getBounds().pad(.2),{maxZoom:16});status("공개된 위치를 지도에 표시했습니다.");}}
  function button(text,p){const b=document.createElement('button');b.className='secondary';b.textContent=text;b.onclick=()=>{stop();show(p.lat,p.lng,'공개 위치',p.receivedAt);};return b;}
  async function refresh(){
   if(busy)return;busy=true;clearTimeout(timer);
@@ -8,6 +9,7 @@
    const r=await fetch('/api/visitors?scope=public',{cache:'no-store',signal:AbortSignal.timeout(15000)});const d=await r.json();if(!r.ok)throw Error(d.error);
    markers.forEach(m=>m.remove());markers=[];el('public-list').replaceChildren();
    for(const p of d.visitors){el('public-list').append(button(p.name+' · '+p.lat.toFixed(6)+', '+p.lng.toFixed(6)+' · '+new Date(p.receivedAt).toLocaleString('ko-KR'),p));if(map){const popup=document.createElement('div');popup.textContent=p.name;markers.push(L.marker([p.lat,p.lng]).addTo(map).bindPopup(popup));}}
+   if(initial&&markers.length&&!params.has('lat')&&!params.has('lng')&&!params.has('device')){fitPublic();initial=false;}
    el('public-status').textContent=d.visitors.length+'명이 공개 중 · 마지막 확인 '+new Date().toLocaleTimeString('ko-KR');
   }catch(e){el('public-status').textContent='공개 위치 조회 실패: '+e.message;}
   try{
@@ -17,5 +19,5 @@
   }catch(e){el('public-log-status').textContent='로그 조회 실패: '+e.message;}
   finally{busy=false;timer=setTimeout(refresh,30000);}
  }
- el('public-refresh').onclick=refresh;el('device').addEventListener('change',refresh);refresh();
+ el('public-fit').onclick=fitPublic;el('public-refresh').onclick=refresh;el('device').addEventListener('change',refresh);refresh();
 })();
