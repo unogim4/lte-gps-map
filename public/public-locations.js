@@ -1,7 +1,8 @@
 (()=>{
  const el=id=>document.getElementById(id);let busy=false,timer,markers=[],initial=true;
  function fitPublic(){if(map&&markers.length){stop();map.fitBounds(L.featureGroup(markers).getBounds().pad(.2),{maxZoom:16});status("공개된 위치를 지도에 표시했습니다.");}}
- function button(text,p){const b=document.createElement('button');b.className='secondary';b.textContent=text;b.onclick=()=>{stop();show(p.lat,p.lng,'공개 위치',p.receivedAt);};return b;}
+ function button(text,p){const b=document.createElement('button');b.className='secondary';b.textContent=text;b.onclick=()=>{stop();show(p.lat,p.lng,p.name?'공개 위치':'장치 기록',p.receivedAt,p);};return b;}
+ const extra=p=>(Number.isFinite(p.alt)?' · 고도 '+p.alt.toFixed(1)+'m':'')+(Number.isFinite(p.battery)?' · 배터리 '+Math.round(p.battery)+'%':'');
  async function refresh(){
   if(busy)return;busy=true;clearTimeout(timer);
   const device=el('device').value;
@@ -15,7 +16,7 @@
   try{
    if(!/^[a-zA-Z0-9_-]{1,40}$/.test(device))throw Error('장치 ID를 입력하세요.');
    const r=await fetch('/api/history?device='+encodeURIComponent(device),{cache:'no-store',signal:AbortSignal.timeout(15000)});const d=await r.json();if(!r.ok)throw Error(d.error);
-   if(device===el('device').value){el('public-log').replaceChildren();if(map&&d.points.length){const p=d.points[0];const popup=document.createElement('div');popup.textContent=device;markers.push(L.marker([p.lat,p.lng]).addTo(map).bindPopup(popup));}for(const p of d.points)el('public-log').append(button(new Date(p.receivedAt).toLocaleString('ko-KR')+' · LAT '+p.lat.toFixed(6)+' · LON '+p.lng.toFixed(6),p));el('public-log-status').textContent=d.points.length+'건 · 마지막 확인 '+new Date().toLocaleTimeString('ko-KR');}
+   if(device===el('device').value){el('public-log').replaceChildren();if(map&&d.points.length){const p=d.points[0];const popup=document.createElement('div');popup.textContent=device;markers.push(L.marker([p.lat,p.lng]).addTo(map).bindPopup(popup));}for(const p of d.points)el('public-log').append(button(new Date(p.receivedAt).toLocaleString('ko-KR')+' · LAT '+p.lat.toFixed(6)+' · LON '+p.lng.toFixed(6)+extra(p),p));el('public-log-status').textContent=d.points.length+'건 · 마지막 확인 '+new Date().toLocaleTimeString('ko-KR');}
   }catch(e){el('public-log-status').textContent='로그 조회 실패: '+e.message;}
   finally{busy=false;timer=setTimeout(refresh,30000);}
  }

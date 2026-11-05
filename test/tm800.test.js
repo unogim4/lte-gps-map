@@ -31,5 +31,9 @@ test('actual text/plain TM800 sample and Buffer parse, key from query',()=>{
  for(const body of [packet,Buffer.from(packet)]){
  const p=normalizeTm800(body,{key:'test-key'},'text/plain');assert.equal(p.device,'l450061222243141');assert.equal(p.lat,'35.176583');assert.equal(p.lng,'129.125880');assert.equal(p.key,'test-key');
  }
+ const extra=normalizeTm800(packet+'|ALT=12.5|BAT=76',{},'text/plain');assert.equal(extra.alt,'12.5');assert.equal(extra.battery,'76');
+ assert.equal('alt' in normalizeTm800(packet,{},'text/plain'),false);
+ assert.equal(normalizeTm800({lat:35,lng:129,altitude:8,bat:50}).battery,50);
+ assert.throws(()=>normalizeTm800({lat:35,lng:129,alt:1,altitude:2}));
  for(const body of [packet+'|LAT=1',packet.replace('ERR=0','ERR=1'),packet.replace('35.176583','NaN'),packet.replace('|LON=129.125880','')])assert.throws(()=>normalizeTm800(body,{},'text/plain'));
 });
