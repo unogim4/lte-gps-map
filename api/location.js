@@ -4,7 +4,18 @@ export function parsePoint(input) {
   for (const field of ['lat', 'lng']) if (input[field] === undefined || input[field] === null || String(input[field]).trim() === '' || !['string','number'].includes(typeof input[field])) throw Error('lat와 lng가 필요합니다.');
   const lat = Number(input.lat), lng = Number(input.lng);
   if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) throw Error('위도는 -90~90, 경도는 -180~180이어야 합니다.');
-  return {device, lat, lng, receivedAt: new Date().toISOString()};
+  const point = {device, lat, lng, receivedAt: new Date().toISOString()};
+  // W-023: 선택값 고도(m)·배터리(%). 없으면 저장하지 않는다(기존 단말기 패킷 그대로 동작).
+  const optional = (name, value, min, max, message) => {
+    if (value === undefined || value === null || String(value).trim() === '') return;
+    if (!['string','number'].includes(typeof value)) throw Error(message);
+    const number = Number(value);
+    if (!Number.isFinite(number) || number < min || number > max) throw Error(message);
+    point[name] = number;
+  };
+  optional('alt', input.alt ?? input.altitude, -1000, 20000, '고도(alt)는 -1000~20000 사이 숫자(m)여야 합니다.');
+  optional('battery', input.battery ?? input.bat, 0, 100, '배터리(battery)는 0~100 사이 숫자(%)여야 합니다.');
+  return point;
 }
 export default async function handler(req, res) {
   res.setHeader('Cache-Control','no-store');

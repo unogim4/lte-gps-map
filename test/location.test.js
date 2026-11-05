@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import handler,{parsePoint} from '../api/location.js';
 test('WGS84 coordinates and zero accepted',()=>{assert.equal(parsePoint({lat:'0',lng:'0'}).lat,0);assert.equal(parsePoint({lat:'37.5',lng:'127'}).lng,127);});
 test('invalid values rejected',()=>{for(const input of [{lat:'',lng:0},{lat:91,lng:0},{lat:0,lng:181},{lat:'NaN',lng:0},{lat:[],lng:0},{lat:0,lng:0,device:'../x'}])assert.throws(()=>parsePoint(input));});
+test('optional altitude and battery are validated and kept only when sent',()=>{
+ const p=parsePoint({lat:'35',lng:'129',alt:'42.5',battery:'87'});assert.equal(p.alt,42.5);assert.equal(p.battery,87);
+ assert.equal(parsePoint({lat:35,lng:129,altitude:-3,bat:0}).alt,-3);
+ const plain=parsePoint({lat:35,lng:129});assert.equal('alt' in plain,false);assert.equal('battery' in plain,false);
+ assert.equal('alt' in parsePoint({lat:35,lng:129,alt:''}),false);
+ for(const bad of [{alt:'high'},{alt:30000},{battery:101},{battery:-1},{battery:'NaN'},{alt:[1]}])assert.throws(()=>parsePoint({lat:35,lng:129,...bad}));
+});
 test('missing storage returns explicit 503, never fake success',async()=>{const env=process.env.UPSTASH_REDIS_REST_URL;delete process.env.UPSTASH_REDIS_REST_URL;const res={setHeader(){},status(s){this.code=s;return this},json(d){this.data=d;}};await handler({method:'GET',query:{device:'gps-01'},headers:{}},res);assert.equal(res.code,503);assert.equal(res.data.code,'STORAGE_NOT_CONFIGURED');if(env)process.env.UPSTASH_REDIS_REST_URL=env;});
 test('Redis write, cross-client read, and authentication with Vercel KV names',async()=>{
  const names=['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','KV_REST_API_URL','KV_REST_API_TOKEN','GPS_WRITE_KEY'];
