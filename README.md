@@ -15,6 +15,17 @@
 - GitHub 저장소: https://github.com/unogim4/lte-gps-map
 - main 브랜치에 푸시하면 Vercel Production 자동 배포
 
+## 회원 로그인 (W-023)
+
+- 로그인한 회원만 지도 화면과 위치 조회 API(`/api/location` 조회, `/api/history`, `/api/visitors`)를 쓸 수 있습니다. 로그인하지 않으면 화면은 `/login.html`로, API는 401 `LOGIN_REQUIRED`로 응답합니다.
+- 문지기는 저장소 맨 위 `middleware.js`(Vercel Routing Middleware, Node 런타임)입니다. 추가 패키지는 없습니다.
+- GPS 단말기 수신(`/radlot/data`, `/api/tm800`, `/api/location` 좌표 저장)은 로그인 없이 기존 GPS 전송키로 그대로 받습니다.
+- 회원 정보는 같은 Redis에 `auth:user:아이디`로 저장하며 비밀번호는 scrypt 해시만 저장합니다. 로그인 상태는 서명된 HttpOnly 쿠키(`gps_session`, 7일)입니다.
+- 선택 환경변수(Production Secret):
+  - `SIGNUP_CODE`: 넣으면 이 가입 코드를 아는 사람만 가입할 수 있습니다. 없으면 누구나 가입할 수 있습니다.
+  - `AUTH_SECRET`: 쿠키 서명 키(32자 이상 임의 값). 없으면 서버가 처음 한 번 만들어 Redis `auth:secret`에 보관합니다. 바꾸면 모든 회원이 다시 로그인해야 합니다.
+- API: `POST /api/auth?action=signup|login|logout`, `GET /api/auth?action=me`. 가입·로그인 시도는 IP당 1분 10번까지입니다.
+
 ## Vercel 배포
 
 Vercel 프로젝트에 unogim4/lte-gps-map 저장소가 연결되어 있습니다. main 브랜치의 새 커밋은 자동으로 빌드·배포되며 https://lte-gps-map.vercel.app 에 반영됩니다. Framework Preset은 Other, Output Directory는 public입니다. api/location.js는 Vercel Function으로 실행합니다.
