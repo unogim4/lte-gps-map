@@ -8,3 +8,9 @@
 @media(max-width:760px){.map-wrap{height:52vh;height:52svh;min-height:320px;flex:0 0 auto}#map{inset:0}.map-top{top:16px;left:16px;right:16px}.map-note{left:16px;bottom:28px;max-width:calc(100% - 32px)}}
 
 button:disabled{opacity:.5;cursor:not-allowed}.consent{display:flex;gap:9px;align-items:flex-start;line-height:1.6;margin:4px 0 15px}.consent input{width:17px;height:17px;margin:1px 0;flex-shrink:0}.visitor-share{margin-top:12px}.visitor-share .primary{justify-content:center}[hidden]{display:none!important}
+
+/* W-023 로그인 */
+.account{display:flex;align-items:center;gap:10px;font-size:12px;color:#36515c}.account-logout{background:white;border:1px solid #d7e1e6;color:#36515c;padding:8px 12px}
+.auth-main{display:flex;justify-content:center;align-items:flex-start;padding:48px 18px;background:#f6f8fa}.auth-card{width:100%;max-width:400px;background:white;border:1px solid #dce4e8;border-radius:12px;padding:32px 28px;box-shadow:0 3px 16px #193b4212}
+.auth-card label{font-size:12px}.auth-card input{font-size:15px}.auth-submit{justify-content:center;padding:14px;font-size:14px;margin-top:4px}.auth-status{min-height:20px;font-size:12px;line-height:1.6;color:#a33a2a;margin:12px 0 0}.auth-status.ok{color:#236c60}
+@media(max-width:760px){.account-name{display:none}.auth-main{padding:24px 14px}.auth-card{padding:24px 18px}}
