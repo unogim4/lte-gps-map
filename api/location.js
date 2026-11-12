@@ -15,6 +15,8 @@ export function parsePoint(input) {
   };
   optional('alt', input.alt ?? input.altitude, -1000, 20000, '고도(alt)는 -1000~20000 사이 숫자(m)여야 합니다.');
   optional('battery', input.battery ?? input.bat, 0, 100, '배터리(battery)는 0~100 사이 숫자(%)여야 합니다.');
+  // W-016: 수집 모드 1 = GPS, 2 = 기지국 위치. 그 밖의 값은 저장하지 않는다.
+  if (input.mode === '1' || input.mode === '2') point.mode = input.mode;
   return point;
 }
 export default async function handler(req, res) {
