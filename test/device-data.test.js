@@ -63,12 +63,12 @@ test('device IDs map to IMSI and pipe MODE is kept',()=>{
 });
 
 test('status/info packets need the GPS key and are stored, then readable',async()=>{
- const keys=['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','KV_REST_API_URL','KV_REST_API_TOKEN','GPS_WRITE_KEY'];const old=Object.fromEntries(keys.map(k=>[k,process.env[k]])),originalFetch=globalThis.fetch;
+ const keys=['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','KV_REST_API_URL','KV_REST_API_TOKEN','GPS_WRITE_KEY','GPS_REQUIRE_KEY'];const old=Object.fromEntries(keys.map(k=>[k,process.env[k]])),originalFetch=globalThis.fetch;
  const store=new Map(),lists=new Map();let calls=0;
  function run(c){switch(c[0]){case 'SET':store.set(c[1],c[2]);return 'OK';case 'GET':return store.get(c[1])??null;case 'LPUSH':{const l=lists.get(c[1])||[];l.unshift(...c.slice(2).reverse());lists.set(c[1],l);return l.length;}case 'LTRIM':return 'OK';case 'LRANGE':return (lists.get(c[1])||[]).slice(c[2],c[3]+1);default:return null;}}
  try{
   delete process.env.KV_REST_API_URL;delete process.env.KV_REST_API_TOKEN;
-  process.env.UPSTASH_REDIS_REST_URL='https://redis.example';process.env.UPSTASH_REDIS_REST_TOKEN='test';process.env.GPS_WRITE_KEY='test-key';
+  process.env.UPSTASH_REDIS_REST_URL='https://redis.example';process.env.UPSTASH_REDIS_REST_TOKEN='test';process.env.GPS_WRITE_KEY='test-key';process.env.GPS_REQUIRE_KEY='1';
   globalThis.fetch=async(url,options)=>{calls++;const c=JSON.parse(options.body);return {ok:true,json:async()=>url.endsWith('/multi-exec')?c.map(row=>({result:run(row)})):{result:run(c)}}};
   const denied=response();await tm800({method:'POST',headers:{'content-type':'text/plain','x-gps-key':'wrong'},query:{},body:STATUS},denied);assert.equal(denied.code,401);assert.equal(calls,0);
   const saved=response();await tm800({method:'POST',headers:{'content-type':'text/plain','x-gps-key':'test-key'},query:{},body:STATUS},saved);assert.equal(saved.code,200);assert.equal(saved.data.count,2);
@@ -81,5 +81,8 @@ test('status/info packets need the GPS key and are stored, then readable',async(
   assert.equal(located.code,200);assert.equal(located.data.count,2);assert.equal(located.data.skipped,1);
   const latest=JSON.parse(store.get('gps:l'+IMSI));assert.equal(latest.lat,35.177);assert.equal(latest.mode,'2');assert.equal(lists.get('gps-history:l'+IMSI).length,2);
   const withError=response();await device({method:'GET',query:{device:'l'+IMSI}},withError);assert.equal(withError.data.locateError.code,'3');
+  // W-016: GPS_REQUIRE_KEY가 없으면(기본) 전송키 없이도 저장한다.
+  delete process.env.GPS_REQUIRE_KEY;
+  const keyless=response();await tm800({method:'POST',headers:{},query:{},body:STATUS},keyless);assert.equal(keyless.code,200);assert.equal(keyless.data.type,'status');
  }finally{globalThis.fetch=originalFetch;for(const k of keys){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k]}}
 });

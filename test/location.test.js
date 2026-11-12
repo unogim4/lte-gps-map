@@ -12,16 +12,19 @@ test('optional altitude and battery are validated and kept only when sent',()=>{
 });
 test('missing storage returns explicit 503, never fake success',async()=>{const env=process.env.UPSTASH_REDIS_REST_URL;delete process.env.UPSTASH_REDIS_REST_URL;const res={setHeader(){},status(s){this.code=s;return this},json(d){this.data=d;}};await handler({method:'GET',query:{device:'gps-01'},headers:{}},res);assert.equal(res.code,503);assert.equal(res.data.code,'STORAGE_NOT_CONFIGURED');if(env)process.env.UPSTASH_REDIS_REST_URL=env;});
 test('Redis write, cross-client read, and authentication with Vercel KV names',async()=>{
- const names=['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','KV_REST_API_URL','KV_REST_API_TOKEN','GPS_WRITE_KEY'];
+ const names=['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','KV_REST_API_URL','KV_REST_API_TOKEN','GPS_WRITE_KEY','GPS_REQUIRE_KEY'];
  const old=Object.fromEntries(names.map(k=>[k,process.env[k]])), originalFetch=globalThis.fetch;
  let saved=null;
  const response=()=>({setHeader(){},status(code){this.code=code;return this},json(data){this.data=data;return this}});
  try{
   delete process.env.UPSTASH_REDIS_REST_URL;delete process.env.UPSTASH_REDIS_REST_TOKEN;
-  process.env.KV_REST_API_URL='https://redis.example';process.env.KV_REST_API_TOKEN='test-token';process.env.GPS_WRITE_KEY='test-key';
+  process.env.KV_REST_API_URL='https://redis.example';process.env.KV_REST_API_TOKEN='test-token';process.env.GPS_WRITE_KEY='test-key';process.env.GPS_REQUIRE_KEY='1';
   globalThis.fetch=async(url,options)=>{const command=JSON.parse(options.body);if(url.endsWith('/multi-exec')){saved=command[0][2];assert.equal(command[1][0],'LPUSH');assert.deepEqual(command[2],['LTRIM','gps-history:test',0,9999]);return {ok:true,json:async()=>command.map(()=>({result:'OK'}))};}return {ok:true,json:async()=>({result:saved})}};
   const denied=response();await handler({method:'GET',query:{device:'test',lat:'37',lng:'127',key:'wrong'},headers:{}},denied);assert.equal(denied.code,401);assert.equal(saved,null);
   const writer=response();await handler({method:'POST',body:{device:'test',lat:37,lng:127},headers:{'x-gps-key':'test-key'}},writer);assert.equal(writer.code,200);
   const reader=response();await handler({method:'GET',query:{device:'test'},headers:{}},reader);assert.equal(reader.data.location.lat,37);assert.equal(reader.data.location.lng,127);
+  // W-016: GPS_REQUIRE_KEY가 없으면(기본) 전송키 없이도 저장한다.
+  delete process.env.GPS_REQUIRE_KEY;
+  const keyless=response();await handler({method:'POST',body:{device:'test',lat:36,lng:128},headers:{}},keyless);assert.equal(keyless.code,200);assert.equal(JSON.parse(saved).lat,36);
  }finally{globalThis.fetch=originalFetch;for(const k of names){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];}}
 });

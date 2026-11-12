@@ -17,9 +17,9 @@ test('route diagnostics do not write a location and unknown packet fails clearly
  const invalid=response();await handler({method:'POST',headers:{'content-type':'application/json'},body:{unknown:'packet'}},invalid);assert.equal(invalid.code,400);assert.equal(invalid.data.code,'COORDINATES_REQUIRED');
 });
 test('normalized TM800 packets preserve auth and storage, returning stored location',async()=>{
- const keys=['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','GPS_WRITE_KEY'];const old=Object.fromEntries(keys.map(k=>[k,process.env[k]])),originalFetch=globalThis.fetch;let saved;
+ const keys=['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','GPS_WRITE_KEY','GPS_REQUIRE_KEY'];const old=Object.fromEntries(keys.map(k=>[k,process.env[k]])),originalFetch=globalThis.fetch;let saved;
  try{
-  process.env.UPSTASH_REDIS_REST_URL='https://redis.example';process.env.UPSTASH_REDIS_REST_TOKEN='test';process.env.GPS_WRITE_KEY='test-key';
+  process.env.UPSTASH_REDIS_REST_URL='https://redis.example';process.env.UPSTASH_REDIS_REST_TOKEN='test';process.env.GPS_WRITE_KEY='test-key';process.env.GPS_REQUIRE_KEY='1';
   globalThis.fetch=async(url,options)=>{const commands=JSON.parse(options.body);saved=commands[0];return {ok:true,json:async()=>commands.map(()=>({result:'OK'}))}};
   const rejected=response();await handler({method:'POST',headers:{},body:{lat:35,lng:129,key:'wrong'}},rejected);assert.equal(rejected.code,401);assert.equal(saved,undefined);
   const accepted=response();await handler({method:'POST',headers:{'x-gps-key':'test-key'},body:{latitude:35,longitude:129}},accepted);assert.equal(accepted.code,200);assert.equal(accepted.data.ok,true);assert.equal(saved[1],'gps:tm800-01');assert.equal(JSON.parse(saved[2]).lng,129);
