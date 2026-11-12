@@ -15,9 +15,9 @@
   if(info.sleepMinutes&&minutes<=info.sleepMinutes*1.2)return ['절전 중일 수 있음 · 슬립 주기 '+info.sleepMinutes+'분',''];
   return ['연락 없음','warn'];
  }
- function render(point,data){
+ // 위치·배터리·방사선량·단말기 상태 4묶음을 만든다(옆 창과 지도 말풍선이 같이 쓴다).
+ function sections(point,data,compact){
   const s=data?.status,i=data?.info,p=point;
-  current.shown=p&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))?p:null;
   const location=[];
   if(p){
    location.push(row('위도',Number(p.lat).toFixed(6)),row('경도',Number(p.lng).toFixed(6)),row('수집 방식',p.mode==='2'?'기지국 위치 (오차 큼)':p.mode==='1'?'GPS':'정보 없음',p.mode==='2'?'warn':p.mode==='1'?'ok':''));
@@ -32,7 +32,7 @@
   if(!battery.length)battery.push(row('배터리','정보 없음'));
   const radiation=[];
   if(s)radiation.push(row('현재 방사선량 (원값, 규격 mSv)',String(s.radiation).padStart(4,'0')),row('측정 시각',terminalTime(s.collectedAt)));
-  const recent=(data?.history||[]).slice(0,10);
+  const recent=(data?.history||[]).slice(0,compact?5:10);
   if(recent.length){
    const max=Math.max(1,...recent.map(r=>Number(r.radiation)||0)),list=document.createElement('div');list.className='dp-bars';
    for(const r of recent){const line=document.createElement('div');line.className='dev-bar';const label=document.createElement('span');label.textContent=terminalTime(r.collectedAt).slice(5)+' · '+String(r.radiation).padStart(4,'0');const bar=document.createElement('i');bar.style.width=Math.round((Number(r.radiation)||0)/max*100)+'%';line.append(label,bar);list.append(line);}
@@ -44,26 +44,49 @@
   const state=[row('연결 상태',conn,connState),row('마지막 상태 수신',last?new Date(last).toLocaleString('ko-KR')+' · '+ago(last):'—')];
   if(s)state.push(row('센서',s.sensorActive?'활성':'비활성',s.sensorActive?'ok':'warn'),row('조사기 부착',s.detectorAttached?'부착':'미부착',s.detectorAttached?'ok':'warn'));
   if(i)state.push(row('신호 세기 RSSI (원값)',String(i.rssi)),row('전송주기','활성 '+i.activeMinutes+'분 · 슬립 '+i.sleepMinutes+'분'),row('망 접속 모드',String(i.networkMode)));
-  el('device-panel-body').replaceChildren(group('위치',location),group('배터리',battery),group('방사선량',radiation),group('단말기 상태',state));
-  el('device-panel-center').disabled=!current.shown;
+  return [group('위치',location),group('배터리',battery),group('방사선량',radiation),group('단말기 상태',state)];
  }
- async function load(){
-  if(!current)return;
-  const run=++seq,{device,point}=current;
-  clearTimeout(timer);
-  el('device-panel-status').textContent='정보를 불러오는 중입니다…';
-  let data=null,latest=point,message='';
+ // 단말기 상태(/api/device)와, 기록을 주지 않았으면 최신 위치(/api/location)를 함께 읽는다.
+ async function fetchInfo(device,point){
+  let data=null,latest=point||null,message='';
   const get=url=>fetch(url,{cache:'no-store',signal:AbortSignal.timeout(15000)}).then(async r=>({ok:r.ok,body:await r.json()}));
   try{
    const [state,place]=await Promise.all([get('/api/device?device='+encodeURIComponent(device)),point?null:get('/api/location?device='+encodeURIComponent(device))]);
    if(state.ok)data=state.body;else message=state.body.error||'단말기 상태 조회 실패';
    if(place){if(place.ok)latest=place.body.location;else message=message||place.body.error||'위치 조회 실패';}
   }catch(e){message=e.name==='TimeoutError'?'연결 시간이 초과되었습니다.':e.message;}
+  return {point:latest,data,message};
+ }
+ const validPoint=p=>p&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))?p:null;
+ async function load(){
+  if(!current)return;
+  const run=++seq,{device,point}=current;
+  clearTimeout(timer);
+  el('device-panel-status').textContent='정보를 불러오는 중입니다…';
+  const info=await fetchInfo(device,point);
   if(run!==seq||!current)return;
-  render(latest,data);
-  el('device-panel-status').textContent=message?'일부 정보를 불러오지 못했습니다: '+message:'마지막 확인 '+new Date().toLocaleTimeString('ko-KR')+' · 30초마다 갱신';
+  current.shown=validPoint(info.point);
+  el('device-panel-body').replaceChildren(...sections(info.point,info.data,false));
+  el('device-panel-center').disabled=!current.shown;
+  el('device-panel-status').textContent=info.message?'일부 정보를 불러오지 못했습니다: '+info.message:'마지막 확인 '+new Date().toLocaleTimeString('ko-KR')+' · 30초마다 갱신';
   timer=setTimeout(load,30000);
  }
+ // 지도 말풍선용: 바로 "불러오는 중"을 돌려주고, 읽어 오면 내용을 채운 뒤 onUpdate()로 말풍선 크기를 맞춘다.
+ window.devicePopupContent=(device,point,onUpdate)=>{
+  const box=document.createElement('div');box.className='dp-popup';
+  const title=document.createElement('strong');title.className='dp-popup-title';title.textContent=device;
+  const note=document.createElement('p');note.className='dp-popup-note';note.textContent='정보를 불러오는 중입니다…';
+  const body=document.createElement('div');
+  const more=document.createElement('button');more.type='button';more.className='secondary';more.textContent='옆 창에서 크게 보기';more.onclick=()=>window.openDevicePanel(device,point);
+  box.append(title,note,body,more);
+  if(typeof device!=='string'||!/^[a-zA-Z0-9_-]{1,40}$/.test(device)){note.textContent='장치 ID가 올바르지 않습니다.';return box;}
+  fetchInfo(device,point).then(info=>{
+   body.replaceChildren(...sections(info.point,info.data,true));
+   note.textContent=info.message?'일부 정보를 불러오지 못했습니다: '+info.message:'확인 '+new Date().toLocaleTimeString('ko-KR');
+   if(typeof onUpdate==='function')onUpdate();
+  });
+  return box;
+ };
  function close(){current=null;seq++;clearTimeout(timer);el('device-panel').hidden=true;}
  // point를 주면 그 기록의 위치를, 없으면 서버의 최신 위치를 보여 준다.
  window.openDevicePanel=(device,point)=>{
