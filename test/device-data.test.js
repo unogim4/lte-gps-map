@@ -43,6 +43,17 @@ test('fixed-width locate packet: plain coordinates, mode, error records skipped,
  assert.equal(normalizeTm800('l'+IMSI+'|LAT=35.1|LON=129.1|ERR=0',{},'text/plain').type,undefined);
 });
 
+test('real-format samples parse without depending on Content-Type',()=>{
+ // 캡틴이 준 실제 상태 패킷 형식(2026-11-12). IMSI는 이미 쓰는 장치 ID와 같은 값.
+ const real='s450061222243141'+['20261112150717','20261112150817','20261112150917','20261112151017','20261112151117'].map(t=>t+'00009111').join('');
+ for(const type of ['text/plain','','application/octet-stream']){const p=normalizeTm800(real,{key:'k'},type);assert.equal(p.type,'status');assert.equal(p.records.length,5);assert.equal(p.imsi,'450061222243141');assert.equal(p.key,'k');}
+ assert.equal(normalizeTm800(Buffer.from(real),{},'').records[4].collectedAt,'20261112151117');
+ assert.equal(normalizeTm800({[real]:''},{},'application/x-www-form-urlencoded').type,'status');
+ // 설정 패킷 형식(IMEI만 가짜 값): 전화번호 칸 0, 활성 5분, 슬립 240분, 슬립 전환 10분, RSSI 31, 망 모드 02
+ const info=normalizeTm800('i'+'1'.repeat(15)+'450061222243141'+'00000000000'+'0052400103102',{},'');
+ assert.deepEqual([info.type,info.activeMinutes,info.sleepMinutes,info.sleepAfterMinutes,info.rssi,info.networkMode],['info',5,240,10,31,'02']);
+});
+
 test('device IDs map to IMSI and pipe MODE is kept',()=>{
  assert.equal(terminalIdFromDevice('l'+IMSI),IMSI);assert.equal(terminalIdFromDevice(IMSI),IMSI);assert.equal(terminalIdFromDevice('tm800-01'),'tm800-01');
  assert.equal(normalizeTm800(STATUS,{key:'k'},'text/plain').type,'status');
